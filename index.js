@@ -62,9 +62,6 @@ function newServer(port, password) {
 	return wss;
 }
 
-// TODO remove it
-newServer(8080, "xxx");
-
 // NAME
 // -------
 function name_valid(name) {
