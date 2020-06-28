@@ -1,12 +1,13 @@
-// Settings
+// Constants
 const STATE_GUEST = 0;
 const STATE_NAMING = 1;
 const STATE_ROOM_MEMBER = 2;
 // ---
 
 const WebSocket = require("ws");
+const { newClient } = require("./client");
 
-function startServer(port, password) {
+function newServer(port, password) {
 	const wss = new WebSocket.Server({port});
 
 	let conns = {};
@@ -62,7 +63,7 @@ function startServer(port, password) {
 }
 
 // TODO remove it
-startServer(8080, "xxx");
+newServer(8080, "xxx");
 
 // NAME
 // -------
@@ -101,5 +102,5 @@ function splitWithTail(str, delim, count){
 
 // Export
 // -------
-module.exports = { startServer };
+module.exports = { newServer, newClient };
 

@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "input": "github:aldienightstar/node_input",
-    "ws": "^7.3.0"
+    "ws": "^7.3.0",
+    "ws-send-await": "github:AldieNightstar/ws-send-await"
   }
 }
