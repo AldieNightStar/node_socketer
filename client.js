@@ -21,7 +21,7 @@ function newClient(url, password, name, options) {
 				}
 				state = 1;
 				if (options.onConnect) {
-					options.onConnect();
+					options.onConnect(client);
 				}
 				resolve(client);
 			}
