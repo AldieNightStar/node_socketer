@@ -39,7 +39,7 @@ function newClient(url, password, name, options) {
 					// arr[1] - message
 					let answ = await options.onMessage(arr[0], arr[1]);
 					if (answ) {
-						ws.send(answ);
+						ws.send(`SEND ${arr[0]} ${answ}`);
 					}
 				}
 			}
@@ -54,7 +54,9 @@ function _client(ws, options) {
 	}
 	async function sendAwait(name, text) {
 		if (closed) return;
-		return ws.sendAwait(composeMsg(name, text));
+		let resp = await ws.sendAwait(composeMsg(name, text));
+		let arr = splitWithTail(resp, " ", 1);
+		return arr[1];
 	}
 	async function send(name, text) {
 		if (closed) return;
