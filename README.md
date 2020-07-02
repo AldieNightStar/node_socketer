@@ -13,17 +13,22 @@ const wsocketer = require("wsocketer");
 let server = wsocketer.newServer(8000, "MyPassword");
 // server is WebSocket server
 
+async function main() {
+	// Create new client
+	let client = await wsocketer.newClient("ws://localhost:8000", "MyPassword", "MyName", {
+		onConnect: () => console.log("Connected!"),
+		onDisconnect: () => console.log("Disconnected!"),
+		onMessage: (sender, message) => {
+			console.log(`NEW MESSAGE FROM ${sender}: ${message}`)
+			// Send answer
+			return "Thank you!";
+		}
+	})
 
-// Create new client
-let client = wsocketer.newClient("ws://localhost:8000", "MyPassword", "MyName", {
-	onConnect: () => console.log("Connected!"),
-	onDisconnect: () => console.log("Disconnected!"),
-	onMessage: (sender, message) => {
-		console.log(`NEW MESSAGE FROM ${sender}: ${message}`)
-		// Send answer
-		return "Thank you!";
-	}
-});
-client.send("OtherName", "PING");
-let response = await client.sendAwait("OtherName", "PING");
+	client.send("OtherName", "PING");
+	let response = await client.sendAwait("OtherName", "PING");
+}
+
+main();
+
 ```
