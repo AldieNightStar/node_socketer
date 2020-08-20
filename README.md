@@ -32,12 +32,9 @@ let client = await wsocketer.newClient("ws://localhost:8000", "MyPassword", "MyN
 });
 ```
 ```js
-// Send message to `Service1` client
-client.send("Service1", {"a": 123, "b": 456});
-
 // Send message to `Service1` client and wait for response
 // response can be either text or object. Depends on response from client
-const response = await client.sendAwait("Service1", {"a": 123, "b": 456});
+const response = await client.send("Service1", {"a": 123, "b": 456});
 
 // Get list of other client names
 const list = await client.getOthers();

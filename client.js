@@ -48,8 +48,6 @@ function newClient(url, password, name, options) {
 						break;
 					}
 				}
-
-
 				if (options.onMessage && newMessage) {
 					let answ = await options.onMessage(sender, message.data);
 					if (answ !== undefined) {
@@ -72,7 +70,7 @@ function _client(name, ws, options, messageReceivers) {
 	function formatMsg(name, msg) {
 		return "SEND " + name + " " + msg;
 	}
-	async function sendAwait(name, messageData) {
+	async function send(name, messageData) {
 		if (closed) return;
 		let msgObject = composeMessageObject(name, messageData);
 
@@ -107,14 +105,9 @@ function _client(name, ws, options, messageReceivers) {
 		let resp = await awaitOrTimeout(messageReceivePromise, 9000);
 		if (resp === null) throw new Error("Response time out!");
 		if (resp === "ERR_NOCLIENT") throw new Error(`Client with name "${name}" is not connected for now!`);
-		if (resp === "ERR_NODATA") throw new Error("Client did not respond to a message");
+		if (resp === "ERR_NODATA") return null;
 
 		return resp;
-	}
-	async function send(name, text) {
-		if (closed) return;
-		text = JSON.stringify(composeMessageObject(name, text));
-		ws.send(formatMsg(name, text));
 	}
 	async function disconnect() {
 		if (closed) return;
@@ -142,7 +135,7 @@ function _client(name, ws, options, messageReceivers) {
 		return array;
 	}
 
-	return { sendAwait, send, disconnect, options, getOthers };
+	return { send, disconnect, options, getOthers };
 }
 
 
