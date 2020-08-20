@@ -1,43 +1,44 @@
-# node_socketer (`wsocketer`)
+# NodeJS WS - Node Socketer
 
 # Install
 ```
 npm install AldieNightstar/node_socketer
 ```
 
-# Usage
+# Create Server
 ```js
 // Import
 const wsocketer = require("wsocketer");
 
-// Create new server
 let server = wsocketer.newServer(8000, "MyPassword");
-// server ==> WebSocket server
+```
 
-async function main() {
-	// Create new client
-	let client = await wsocketer.newClient("ws://localhost:8000", "MyPassword", "MyName", {
-		onConnect: () => console.log("Connected!"),
-		onDisconnect: () => console.log("Disconnected!"),
-		onMessage: (sender, message) => {
-			console.log(`NEW MESSAGE FROM ${sender}: ${message}`)
-			// Send answer
-			return "Thank you!";
-		}
-	})
 
-	// Send message to another client
-	client.send("OtherName", "PING");
 
-	// Send message to another client and WAIT for response
-	// Throws error if message not sent or such client is not connected
-	let response = await client.sendAwait("OtherName", "PING");
+# Create Client
+```js
+// Here we creating Client
+// Can throw Error in case wrong name or password
+let client = await wsocketer.newClient("ws://localhost:8000", "MyPassword", "MyName", {
+    onConnect: (client) => console.log("Connected!"),
+    onDisconnect: () => console.log("Disconnected!"),
+    onMessage: (sender, message) => {
+        // sender  - Name of the sender client
+        // message - Message text/object
 
-	// Return list of all clients connected to this server as well
-	// You is not displayed in this list.
-	let clients  = await client.getOthers()
-}
+        // Send message via return statement
+        return {"text": "Thank you!"};
+    }
+});
+```
+```js
+// Send message to `Service1` client
+client.send("Service1", {"a": 123, "b": 456});
 
-main();
+// Send message to `Service1` client and wait for response
+// response can be either text or object. Depends on response from client
+const response = await client.sendAwait("Service1", {"a": 123, "b": 456});
 
+// Get list of other client names
+const list = await client.getOthers();
 ```
