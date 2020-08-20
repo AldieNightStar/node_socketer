@@ -2,10 +2,13 @@
 const STATE_GUEST = 0;
 const STATE_NAMING = 1;
 const STATE_ROOM_MEMBER = 2;
+
+const ERR_NOCLIENT = "ERR_NOCLIENT";
 // ---
 
 const WebSocket = require("ws");
 const { newClient } = require("./client");
+const { composeMessageObject, readAnswerMessage, composeAnswerObject } = require("./message");
 
 function newServer(port, password) {
 	const wss = new WebSocket.Server({ port });
@@ -37,15 +40,17 @@ function newServer(port, password) {
 					ws.send("NAME ERR");
 				}
 			} else if (state === STATE_ROOM_MEMBER) {
-				let cmd = cmd_parse(msg);
-				if (cmd[0] === "NAMES") {
+				let [cmd, content] = cmd_parse(msg);
+				if (cmd === "NAMES") {
 					ws.send(Object.keys(conns).join(", "));
-				} else if (cmd[0] === "SEND") {
-					let arr = cmd_parse(cmd[1]);
-					let message = `${name} ${arr[1]}`;
-					let err = send_to_one(conns, arr[0], message);
+				} else if (cmd === "SEND") {
+					let [receiverName, messageTextBody] = cmd_parse(content);
+					let messageToSend = `${name} ${messageTextBody}`;
+					let err = send_to_one(conns, receiverName, messageToSend);
 					if (err !== undefined) {
-						ws.send(err);
+						const msgObject = JSON.parse(messageTextBody);
+						const errorAnswer = composeAnswerObject(msgObject.identifier, err);
+						ws.send("SERVER " + JSON.stringify(errorAnswer));
 					}
 				}
 			}
@@ -70,7 +75,7 @@ function name_valid(name) {
 // ---------
 function send_to_one(conns, name, message) {
 	let w = conns[name];
-	if (!w) return "ERR_NOCLIENT";
+	if (!w) return ERR_NOCLIENT;
 	w.send(message);
 }
 
