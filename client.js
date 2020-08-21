@@ -38,6 +38,9 @@ function newClient(url, password, name, options) {
 				let [sender, message] = splitWithTail(msg, " ", 1);
 				message = JSON.parse(message);
 
+				// Check each function in messageReceivers. If some function will return true, then we will remove it from array
+				//   and stop the iteration
+				// Each message should have message.identifier filter. And if filter is right, then this message returns true and we remove it.
 				let newMessage = true;
 				for (let i = 0; i < messageReceivers.length; i++) {
 					let func = messageReceivers[i];
@@ -48,6 +51,9 @@ function newClient(url, password, name, options) {
 						break;
 					}
 				}
+
+				// If no-one message returned true, then we said that this message is new for client.
+				// We consider it as new message
 				if (options.onMessage && newMessage) {
 					let answ = await options.onMessage(sender, message.data);
 					if (answ !== undefined) {
@@ -115,24 +121,16 @@ function _client(name, ws, options, messageReceivers) {
 		ws.close();
 	}
 	async function getOthers() {
-		let resp = await ws.sendAwait("NAMES");
-		if (resp === undefined || resp === null) return [];
-		if (typeof (resp) !== "string") return "";
-		let array = null;
-
-		// If element only one
-		if (resp.indexOf(",") === -1) {
-			array = [resp];
-		} else { // If many elements
-			array = resp.split(", ");
+		let resp = await send("SERVER", "NAMES");
+		if (resp === undefined || resp === null) throw Error("Can't retreive list of clients.");
+		if (!Array.isArray(resp)) throw Error("Error with retreiving list of clients: " + resp);
+		{ // Remove myself from this list
+			let myid = resp.indexOf(name);
+			if (myid !== -1) {
+				resp.splice(myid, 1);
+			}
 		}
-
-		let myid = array.indexOf(name);
-		if (myid !== -1) {
-			array.splice(myid, 1);
-		}
-
-		return array;
+		return resp;
 	}
 
 	return { send, disconnect, options, getOthers };

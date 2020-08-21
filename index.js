@@ -41,10 +41,19 @@ function newServer(port, password) {
 				}
 			} else if (state === STATE_ROOM_MEMBER) {
 				let [cmd, content] = cmd_parse(msg);
-				if (cmd === "NAMES") {
-					ws.send(Object.keys(conns).join(", "));
-				} else if (cmd === "SEND") {
+				if (cmd === "SEND") {
 					let [receiverName, messageTextBody] = cmd_parse(content);
+
+					// SERVER COMMAND
+					// ==============
+					if (receiverName === "SERVER") {
+						const msgObject = JSON.parse(messageTextBody);
+						callServerCommand(ws, name, msgObject, conns);
+						return;
+					}
+
+					// COMMAND TO ANOTHER CLIENT
+					// =========================
 					let messageToSend = `${name} ${messageTextBody}`;
 					let err = send_to_one(conns, receiverName, messageToSend);
 					if (err !== undefined) {
@@ -98,6 +107,26 @@ function splitWithTail(str, delim, count) {
 	var result = parts.slice(0, count);
 	result.push(tail);
 	return result;
+}
+
+// Server commands
+function callServerCommand(ws, clientName, msgObject, conns) {
+	// msgObject - {identifier, data}
+
+	// Check commands by msgObject.data
+	if (msgObject.data === "NAMES") {
+		const answ = composeAnswerObject(
+			msgObject.identifier,
+			Object.keys(conns)
+		)
+		ws.send("SERVER " + JSON.stringify(answ));
+	} else {
+		const answ = composeAnswerObject(
+			msgObject.identifier,
+			"ERR_UNKNOWN_CMD"
+		)
+		ws.send("SERVER " + JSON.stringify(answ));
+	}
 }
 
 // Export
