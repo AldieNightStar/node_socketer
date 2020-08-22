@@ -84,6 +84,7 @@ function _client(name, ws, options, messageReceivers) {
 		let messageReceivePromise = new Promise(ok => {
 			let func = incomeMessage => {
 				try {
+					// Try to read message and if identifier is ok then return message data. Or null if identifiers are not equal
 					let data = readAnswerMessage(msgObject.identifier, incomeMessage)
 					if (data !== null && data !== undefined) {
 						ok(data);

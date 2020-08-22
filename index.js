@@ -11,9 +11,11 @@ const { newClient } = require("./client");
 const { composeMessageObject, readAnswerMessage, composeAnswerObject } = require("./message");
 
 function newServer(port, password) {
-	const wss = new WebSocket.Server({ port });
+	let wss = new WebSocket.Server({
+		port,
+		maxPayload: 128 * 1024
+	});
 	let conns = {};
-
 	wss.on('connection', (ws) => {
 		let state = STATE_GUEST;
 		let name = null;
@@ -69,6 +71,9 @@ function newServer(port, password) {
 				delete conns[name];
 			}
 		});
+		ws.on("error", e => {
+			console.error(e);
+		})
 	});
 
 	return wss;
