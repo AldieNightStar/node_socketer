@@ -82,7 +82,7 @@ function newServer(port, password) {
 // NAME
 // -------
 function name_valid(name) {
-	return name.length > 2 && name.length <= 20 && !name.includes(" ");
+	return name.length > 1 && name.length <= 20 && !name.includes(" ");
 }
 
 // Messaging

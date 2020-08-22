@@ -8,7 +8,39 @@ function newClient(url, password, name, options) {
 		let state = 0;
 		let messageReceivers = [];
 		addSendAwait(ws);
-		let client = _client(name, ws, options, messageReceivers);
+
+		// Create client and create special object for it
+		let spec = {
+			ws,
+			disconnected: false,
+			reconnectedClient: null
+		}
+		let client = _client(name, spec, options, messageReceivers);
+
+		/**
+		 * Reconnects client. Writes in "spec.reconnectedClient" new client. So then client have to delegate all the calls to it
+		 */
+		async function reconnect() {
+			let rclient = await newClient(url, password, name, {
+				...options,
+				onConnect: () => {
+					spec.disconnected = false;
+					if (options.onConnect) {
+						options.onConnect();
+					}
+				},
+				onDisconnect: async () => {
+					spec.disconnected = true;
+					if (options.onDisconnect) {
+						options.onDisconnect();
+					}
+					spec.reconnectedClient = await reconnect();
+				},
+				autoReconnect: false
+			});
+			return rclient;
+		}
+
 		ws.on('open', async () => {
 			if (state === 0) {
 				let resp = await ws.sendAwait(password);
@@ -28,9 +60,18 @@ function newClient(url, password, name, options) {
 				resolve(client);
 			}
 		});
-		ws.on('close', () => {
+		ws.on('close', async () => {
 			if (options.onDisconnect) {
-				options.onDisconnect();
+				spec.disconnected = true;
+				ws.close();
+				if (options.onDisconnect) options.onDisconnect();
+				if (options.autoReconnect) {
+					if (spec.disconnectedManually) {
+						delete spec.disconnectedManually;
+					} else {
+						spec.reconnectedClient = await reconnect();
+					}
+				}
 			}
 		});
 		ws.on('message', async msg => {
@@ -71,13 +112,19 @@ function newClient(url, password, name, options) {
 	});
 }
 
-function _client(name, ws, options, messageReceivers) {
-	let closed = false;
+function _client(name, spec, options, messageReceivers) {
 	function formatMsg(name, msg) {
 		return "SEND " + name + " " + msg;
 	}
+
 	async function send(name, messageData) {
-		if (closed) return;
+		// If client reconnected, then we have copy of that client,
+		// which is running inside our "spec" object.
+		// Delegate send call to this client
+		if (spec.reconnectedClient !== null) {
+			return await spec.reconnectedClient.send(...arguments);
+		}
+
 		let msgObject = composeMessageObject(name, messageData);
 
 		// Put new CallBack to messageReceivePromise which will resolve promise to await for message with the same identifier
@@ -107,7 +154,9 @@ function _client(name, ws, options, messageReceivers) {
 			}, 10000);
 		})
 
-		ws.send(formatMsg(name, JSON.stringify(msgObject)));
+		let formatedMessage = formatMsg(name, JSON.stringify(msgObject))
+		if (formatedMessage.length > 1024 * 128) throw new Error("Message is too big!"); 
+		spec.ws.send(formatedMessage);
 
 		let resp = await awaitOrTimeout(messageReceivePromise, 9000);
 		if (resp === null) throw new Error("Response time out!");
@@ -117,11 +166,20 @@ function _client(name, ws, options, messageReceivers) {
 		return resp;
 	}
 	async function disconnect() {
-		if (closed) return;
-		closed = true;
-		ws.close();
+		spec.disconnectedManually = true;
+		if (spec.reconnectedClient) {
+			await spec.reconnectedClient.disconnect();
+			spec.reconnectedClient = null;
+			return;
+		}
+		if (spec.disconnected) return;
+		spec.disconnected = true;
+		spec.ws.close();
 	}
 	async function getOthers() {
+		if (spec.reconnectedClient) {
+			return await spec.reconnectedClient.getOthers();
+		}
 		let resp = await send("SERVER", "NAMES");
 		if (resp === undefined || resp === null) throw Error("Can't retreive list of clients.");
 		if (!Array.isArray(resp)) throw Error("Error with retreiving list of clients: " + resp);

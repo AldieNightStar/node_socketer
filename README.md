@@ -28,7 +28,9 @@ let client = await wsocketer.newClient("ws://localhost:8000", "MyPassword", "MyN
 
         // Send message via return statement
         return {"text": "Thank you!"};
-    }
+    },
+    // If you want to client reconnect each disconnection
+    utoReconnect: true
 });
 ```
 ```js
